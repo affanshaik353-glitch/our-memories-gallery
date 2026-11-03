@@ -389,11 +389,100 @@ function navigateLightbox(direction) {
   openLightbox(state.lightboxIndex + direction);
 }
 
+function encodeGallerySnapshot() {
+  const json = JSON.stringify(state.photos.map(photo => ({
+    id: photo.id,
+    title: photo.title,
+    description: photo.description || "",
+    dataUrl: photo.dataUrl,
+    date: photo.date,
+    likes: Array.isArray(photo.likes) ? photo.likes : []
+  })));
+  const bytes = new TextEncoder().encode(json);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function decodeGallerySnapshot(encoded) {
+  const binary = atob(encoded);
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function importSharedGallery() {
+  if (!location.hash.startsWith("#sharedGallery=")) return false;
+  try {
+    const encoded = location.hash.slice("#sharedGallery=".length);
+    const photos = decodeGallerySnapshot(encoded);
+    if (!Array.isArray(photos)) throw new Error("Invalid gallery");
+    const validPhotos = photos.filter(photo =>
+      photo && typeof photo.dataUrl === "string" && /^data:image\/(?:jpeg|png|webp);base64,/i.test(photo.dataUrl)
+    );
+    state.photos = validPhotos.map(photo => ({
+      id: String(photo.id || uid("memory")).slice(0, 100),
+      title: String(photo.title || "Beautiful Memory").slice(0, 80),
+      description: String(photo.description || "").slice(0, 500),
+      dataUrl: photo.dataUrl,
+      date: photo.date || new Date().toISOString(),
+      likes: Array.isArray(photo.likes) ? photo.likes : []
+    }));
+    storageSet(KEYS.photos, state.photos);
+    loadPhotos();
+    $("#memories").classList.remove("hidden-section");
+    showToast("Shared gallery loaded successfully.", "success");
+    return true;
+  } catch {
+    showToast("This gallery link is invalid or damaged.", "error");
+    return false;
+  }
+}
+
+async function shareGallery() {
+  if (!state.photos.length) {
+    showToast("Add at least one photo before sharing the gallery.", "error");
+    return;
+  }
+  let encoded;
+  try {
+    encoded = encodeGallerySnapshot();
+  } catch {
+    showToast("The gallery could not be converted into a share link.", "error");
+    return;
+  }
+  if (encoded.length > 7000000) {
+    showToast("This gallery is too large for a link. Use fewer or smaller photos.", "error");
+    return;
+  }
+  const url = new URL(location.href);
+  url.hash = `sharedGallery=${encoded}`;
+  const linkInput = $("#sharedGalleryLink");
+  linkInput.value = url.toString();
+  linkInput.classList.add("visible");
+  try {
+    await navigator.clipboard.writeText(linkInput.value);
+    showToast("Public gallery link copied.", "success");
+  } catch {
+    linkInput.focus();
+    linkInput.select();
+    showToast("Gallery link selected. Copy it with Ctrl+C or Command+C.");
+  }
+  $("#memories").classList.remove("hidden-section");
+  linkInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   loadPhotos();
   getVisitorId();
   applyTheme(localStorage.getItem(KEYS.theme) || "pink");
   updateAdminUI();
+
+  importSharedGallery();
+
+  $("#shareGalleryButton").addEventListener("click", shareGallery);
 
   $("#exploreButton").addEventListener("click", () => {
     $("#memories").classList.remove("hidden-section");
@@ -597,5 +686,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("beforeunload", stopCamera);
+  window.addEventListener("storage", event => {
+    if (event.key === KEYS.photos) renderGallery();
+  });
   renderGallery();
 });
