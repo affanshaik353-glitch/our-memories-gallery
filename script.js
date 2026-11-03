@@ -422,14 +422,25 @@ function importSharedGallery() {
     const validPhotos = photos.filter(photo =>
       photo && typeof photo.dataUrl === "string" && /^data:image\/(?:jpeg|png|webp);base64,/i.test(photo.dataUrl)
     );
+    const localPhotos = storageGet(KEYS.photos, []);
+    const visitorId = getVisitorId();
     state.photos = validPhotos.map(photo => ({
       id: String(photo.id || uid("memory")).slice(0, 100),
       title: String(photo.title || "Beautiful Memory").slice(0, 80),
       description: String(photo.description || "").slice(0, 500),
       dataUrl: photo.dataUrl,
       date: photo.date || new Date().toISOString(),
-      likes: Array.isArray(photo.likes) ? photo.likes : []
+      likes: Array.isArray(photo.likes) ? [...photo.likes] : []
     }));
+    if (Array.isArray(localPhotos)) {
+      state.photos.forEach(sharedPhoto => {
+        const localPhoto = localPhotos.find(photo => photo && photo.id === sharedPhoto.id);
+        if (Array.isArray(localPhoto?.likes)) {
+          sharedPhoto.likes = sharedPhoto.likes.filter(id => id !== visitorId);
+          if (localPhoto.likes.includes(visitorId)) sharedPhoto.likes.push(visitorId);
+        }
+      });
+    }
     storageSet(KEYS.photos, state.photos);
     loadPhotos();
     $("#memories").classList.remove("hidden-section");
@@ -472,6 +483,36 @@ async function shareGallery() {
   }
   $("#memories").classList.remove("hidden-section");
   linkInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function publishGalleryLink({ copy = true } = {}) {
+  if (!state.photos.length) return "";
+  let encoded;
+  try {
+    encoded = encodeGallerySnapshot();
+  } catch {
+    showToast("The gallery could not be published. Try smaller photos.", "error");
+    return "";
+  }
+  if (encoded.length > 7000000) {
+    showToast("The gallery is too large for a share link. Upload fewer photos or smaller images.", "error");
+    return "";
+  }
+  const url = new URL(location.href);
+  url.hash = `sharedGallery=${encoded}`;
+  history.replaceState(null, "", url);
+  $("#sharedGalleryLink").value = url.toString();
+  $("#sharedGalleryLink").classList.add("visible");
+  if (copy && navigator.clipboard) {
+    navigator.clipboard.writeText(url.toString()).catch(() => {});
+  }
+  return url.toString();
+}
+
+async function publishGalleryAfterChange() {
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  const link = publishGalleryLink({ copy: true });
+  if (link) showToast("Gallery published and link copied.", "success");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -533,6 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
       $("#saveUploadsButton").disabled = true;
       $("#photoUpload").value = "";
       renderGallery();
+      publishGalleryAfterChange();
     }
   });
   $("#uploadPreviews").addEventListener("click", event => {
@@ -578,6 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderGallery();
     stopCamera();
     closeModal("cameraModal");
+    publishGalleryAfterChange();
   });
 
   $$(".theme-swatch").forEach(button => button.addEventListener("click", () => {
