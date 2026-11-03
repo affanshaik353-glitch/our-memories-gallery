@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f8d5e5">
+  <title>Our Memories ❤️</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient-background" aria-hidden="true">
+    <span class="floating-heart heart-one">♥</span>
+    <span class="floating-heart heart-two">♥</span>
+    <span class="floating-heart heart-three">♥</span>
+    <span class="floating-star star-one">✦</span>
+    <span class="floating-star star-two">✦</span>
+    <span class="floating-star star-three">✦</span>
+  </div>
+
+  <header class="site-header">
+    <nav class="navbar container" aria-label="Main navigation">
+      <a class="brand" href="#home">Our Memories <span>♥</span></a>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="navLinks">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#memories" class="nav-link">Our Memories</a>
+        <button class="nav-link nav-button" id="adminNavButton" type="button">Admin Login</button>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="welcome-section">
+      <div class="welcome-card reveal visible">
+        <div class="welcome-badge">Made with love</div>
+        <h1>Our Beautiful Memories <span aria-hidden="true">❤️</span></h1>
+        <p>A little place where our precious moments live forever.</p>
+        <button class="primary-button" id="exploreButton" type="button">Explore Our Memories ❤️</button>
+      </div>
+      <div class="welcome-polaroids" aria-hidden="true">
+        <div class="mini-polaroid polaroid-one">♡</div>
+        <div class="mini-polaroid polaroid-two">✦</div>
+      </div>
+    </section>
+
+    <section id="memories" class="memories-section section hidden-section">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Our little collection</span>
+          <h2>Our Memories</h2>
+          <p>Every smile, every adventure, every moment worth keeping.</p>
+        </div>
+        <div class="gallery-toolbar" id="galleryToolbar">
+          <div>
+            <span id="memoryCount">0 memories</span>
+          </div>
+          <button class="outline-button admin-only hidden" id="manageButton" type="button">Open Admin Dashboard</button>
+        </div>
+        <div id="gallery" class="gallery-grid" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="dashboard" class="dashboard-section section admin-only hidden" aria-labelledby="dashboardTitle">
+      <div class="container">
+        <div class="dashboard-header">
+          <div>
+            <span class="eyebrow">Private space</span>
+            <h2 id="dashboardTitle">Admin Dashboard</h2>
+          </div>
+          <button class="danger-outline-button" id="logoutButton" type="button">Logout</button>
+        </div>
+        <div class="dashboard-grid">
+          <section class="dashboard-card">
+            <h3>Add Photos</h3>
+            <p>Upload one or more memories from your device.</p>
+            <label class="upload-zone" for="photoUpload">
+              <span class="upload-icon">＋</span>
+              <strong>Choose photos</strong>
+              <small>JPG, JPEG, PNG or WEBP</small>
+            </label>
+            <input class="visually-hidden" id="photoUpload" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple>
+            <div id="uploadPreviews" class="upload-previews"></div>
+            <button class="primary-button full-button" id="saveUploadsButton" type="button" disabled>Save Uploaded Memories</button>
+          </section>
+
+          <section class="dashboard-card">
+            <h3>Live Camera</h3>
+            <p>Capture a memory right now.</p>
+            <button class="primary-button full-button" id="openCameraButton" type="button">Capture a Memory 📸</button>
+            <div class="camera-status" id="cameraStatus"></div>
+          </section>
+
+          <section class="dashboard-card theme-card">
+            <h3>Customize Theme 🎨</h3>
+            <p>Choose the mood for every page.</p>
+            <div class="theme-options" id="themeOptions">
+              <button class="theme-swatch theme-pink" type="button" data-theme="pink"><span>Pastel Pink</span></button>
+              <button class="theme-swatch theme-lavender" type="button" data-theme="lavender"><span>Lavender</span></button>
+              <button class="theme-swatch theme-sky" type="button" data-theme="sky"><span>Sky Blue</span></button>
+              <button class="theme-swatch theme-cream" type="button" data-theme="cream"><span>Cream</span></button>
+              <button class="theme-swatch theme-dark" type="button" data-theme="dark"><span>Dark Romantic</span></button>
+            </div>
+            <label class="outline-button full-button upload-label" for="backgroundUpload">Upload Background Photo</label>
+            <input class="visually-hidden" id="backgroundUpload" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+            <div id="backgroundPreview" class="background-preview"></div>
+            <button class="danger-outline-button full-button" id="removeBackgroundButton" type="button">Remove Background Photo</button>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about-section section">
+      <div class="container about-card reveal">
+        <span class="about-heart">♥</span>
+        <span class="eyebrow">Our story</span>
+        <h2>Every Picture Has a Story ❤️</h2>
+        <p>This little corner of the internet is dedicated to preserving our happiest moments, unforgettable memories, and beautiful experiences.</p>
+      </div>
+    </section>
+
+    <section id="contact" class="contact-section section">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Say hello</span>
+          <h2>Leave a Little Note</h2>
+        </div>
+        <form id="contactForm" class="contact-form" novalidate>
+          <label>Name<input id="contactName" name="name" type="text" maxlength="60" required></label>
+          <label>Email<input id="contactEmail" name="email" type="email" maxlength="120" required></label>
+          <label>Message<textarea id="contactMessage" name="message" rows="5" maxlength="1000" required></textarea></label>
+          <button class="primary-button" type="submit">Submit Note</button>
+          <p class="storage-note">Messages are saved only in this browser's LocalStorage and are not sent to an email server.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle" hidden>
+    <div class="modal-backdrop" data-close="loginModal"></div>
+    <div class="modal-panel login-panel">
+      <button class="icon-button modal-close" type="button" data-close="loginModal" aria-label="Close login">×</button>
+      <span class="eyebrow">Private access</span>
+      <h2 id="loginTitle">Welcome Back</h2>
+      <p class="demo-note">Demo login only. This is not production-grade authentication.</p>
+      <form id="loginForm" novalidate>
+        <label>Admin User ID<input id="adminUser" type="text" autocomplete="username" required></label>
+        <label>Password
+          <div class="password-field">
+            <input id="adminPassword" type="password" autocomplete="current-password" required>
+            <button type="button" id="togglePassword" aria-label="Show password">Show</button>
+          </div>
+        </label>
+        <p class="form-error" id="loginError" role="alert"></p>
+        <button class="primary-button full-button" type="submit">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal lightbox-modal" id="lightboxModal" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+    <div class="modal-backdrop" data-close="lightboxModal"></div>
+    <button class="icon-button lightbox-close" type="button" data-close="lightboxModal" aria-label="Close photo viewer">×</button>
+    <button class="lightbox-nav lightbox-prev" id="lightboxPrev" type="button" aria-label="Previous photo">‹</button>
+    <figure>
+      <img id="lightboxImage" alt="">
+      <figcaption>
+        <strong id="lightboxTitle"></strong>
+        <span id="lightboxDescription"></span>
+      </figcaption>
+    </figure>
+    <button class="lightbox-nav lightbox-next" id="lightboxNext" type="button" aria-label="Next photo">›</button>
+  </div>
+
+  <div class="modal" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraTitle" hidden>
+    <div class="modal-backdrop" data-close="cameraModal"></div>
+    <div class="modal-panel camera-panel">
+      <button class="icon-button modal-close" type="button" data-close="cameraModal" aria-label="Close camera">×</button>
+      <span class="eyebrow">Live moment</span>
+      <h2 id="cameraTitle">Capture a Memory</h2>
+      <div class="camera-viewport">
+        <video id="cameraVideo" autoplay playsinline></video>
+        <canvas id="cameraCanvas" class="hidden"></canvas>
+        <img id="cameraPreview" alt="Captured preview" hidden>
+      </div>
+      <div class="camera-actions">
+        <button class="outline-button" id="switchCameraButton" type="button">Switch Camera</button>
+        <button class="primary-button" id="captureButton" type="button">Capture Photo</button>
+        <button class="outline-button hidden" id="retakeButton" type="button">Retake</button>
+      </div>
+      <div id="cameraSaveForm" class="camera-save-form hidden">
+        <label>Title<input id="cameraTitleInput" type="text" maxlength="80"></label>
+        <label>Description<textarea id="cameraDescriptionInput" rows="3" maxlength="500"></textarea></label>
+        <button class="primary-button full-button" id="saveCapturedButton" type="button">Save Memory</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editTitle" hidden>
+    <div class="modal-backdrop" data-close="editModal"></div>
+    <div class="modal-panel edit-panel">
+      <button class="icon-button modal-close" type="button" data-close="editModal" aria-label="Close editor">×</button>
+      <span class="eyebrow">Update memory</span>
+      <h2 id="editTitle">Edit Photo</h2>
+      <form id="editForm">
+        <input id="editPhotoId" type="hidden">
+        <label>Title<input id="editPhotoTitle" type="text" maxlength="80" required></label>
+        <label>Description<textarea id="editPhotoDescription" rows="4" maxlength="500"></textarea></label>
+        <button class="primary-button full-button" type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
