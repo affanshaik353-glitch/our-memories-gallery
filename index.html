@@ -105,8 +105,11 @@
           </section>
 
           <section class="dashboard-card">
-            <h3>Share Gallery Link</h3>
-            <p>Publish this gallery snapshot so visitors on other devices can see the photos.</p>
+            <h3>Publish to Every Visitor</h3>
+            <p>Use a short-lived GitHub token to publish photos publicly. Do not share this token.</p>
+            <label>GitHub repository owner<input id="githubOwner" type="text" value="affanshaik353-glitch"></label>
+            <label>Repository name<input id="githubRepo" type="text" value="our-memories-gallery"></label>
+            <label>Publishing token<input id="githubToken" type="password" autocomplete="off"></label>
             <button class="primary-button full-button" id="shareGalleryButton" type="button">Copy Public Gallery Link 🔗</button>
             <input class="shared-link-field" id="sharedGalleryLink" type="text" readonly aria-label="Public gallery link">
           </section>

@@ -9,6 +9,11 @@ const KEYS = {
   comments: "ourMemories.comments",
   contacts: "ourMemories.contacts"
 };
+const PUBLISH_KEYS = {
+  owner: "ourMemories.githubOwner",
+  repo: "ourMemories.githubRepo",
+  token: "ourMemories.githubToken"
+};
 const ADMIN = { id: "OURWORLD123", password: "OUR_WORLD_123@" };
 const state = {
   isAdmin: sessionStorage.getItem(KEYS.admin) === "true",
@@ -422,25 +427,14 @@ function importSharedGallery() {
     const validPhotos = photos.filter(photo =>
       photo && typeof photo.dataUrl === "string" && /^data:image\/(?:jpeg|png|webp);base64,/i.test(photo.dataUrl)
     );
-    const localPhotos = storageGet(KEYS.photos, []);
-    const visitorId = getVisitorId();
     state.photos = validPhotos.map(photo => ({
       id: String(photo.id || uid("memory")).slice(0, 100),
       title: String(photo.title || "Beautiful Memory").slice(0, 80),
       description: String(photo.description || "").slice(0, 500),
       dataUrl: photo.dataUrl,
       date: photo.date || new Date().toISOString(),
-      likes: Array.isArray(photo.likes) ? [...photo.likes] : []
+      likes: Array.isArray(photo.likes) ? photo.likes : []
     }));
-    if (Array.isArray(localPhotos)) {
-      state.photos.forEach(sharedPhoto => {
-        const localPhoto = localPhotos.find(photo => photo && photo.id === sharedPhoto.id);
-        if (Array.isArray(localPhoto?.likes)) {
-          sharedPhoto.likes = sharedPhoto.likes.filter(id => id !== visitorId);
-          if (localPhoto.likes.includes(visitorId)) sharedPhoto.likes.push(visitorId);
-        }
-      });
-    }
     storageSet(KEYS.photos, state.photos);
     loadPhotos();
     $("#memories").classList.remove("hidden-section");
@@ -456,6 +450,87 @@ async function shareGallery() {
   if (!state.photos.length) {
     showToast("Add at least one photo before sharing the gallery.", "error");
     return;
+  }
+
+  async function loadPublishedGallery() {
+    try {
+      const response = await fetch(`gallery.json?_=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) return;
+      const photos = await response.json();
+      if (!Array.isArray(photos)) return;
+      if (!photos.length && state.isAdmin && state.photos.length) return;
+      state.photos = photos.filter(photo =>
+        photo && typeof photo.dataUrl === "string" &&
+        /^data:image\/(?:jpeg|png|webp);base64,/i.test(photo.dataUrl)
+      );
+      storageSet(KEYS.photos, state.photos);
+      renderGallery();
+    } catch {
+      loadPhotos();
+      renderGallery();
+    }
+  }
+
+  function galleryJsonBase64(value) {
+    const bytes = new TextEncoder().encode(value);
+    let binary = "";
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary);
+  }
+
+  async function publishGallery() {
+    const owner = $("#githubOwner").value.trim();
+    const repo = $("#githubRepo").value.trim();
+    const token = $("#githubToken").value.trim();
+    if (!owner || !repo || !token) {
+      showToast("Enter the repository owner, repository name, and publishing token.", "error");
+      return;
+    }
+    if (!state.photos.length) {
+      showToast("Add at least one photo before publishing.", "error");
+      return;
+    }
+    sessionStorage.setItem(PUBLISH_KEYS.owner, owner);
+    sessionStorage.setItem(PUBLISH_KEYS.repo, repo);
+    sessionStorage.setItem(PUBLISH_KEYS.token, token);
+    const api = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/gallery.json`;
+    let sha;
+    try {
+      const existingResponse = await fetch(api, { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
+      if (existingResponse.ok) sha = (await existingResponse.json()).sha;
+    } catch {
+      showToast("GitHub could not be reached.", "error");
+      return;
+    }
+    const content = galleryJsonBase64(JSON.stringify(state.photos.map(photo => ({
+      id: photo.id,
+      title: photo.title,
+      description: photo.description || "",
+      dataUrl: photo.dataUrl,
+      date: photo.date,
+      likes: Array.isArray(photo.likes) ? photo.likes : []
+    })), null, 2));
+    try {
+      const response = await fetch(api, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "Publish gallery photos",
+          content,
+          branch: "main",
+          ...(sha ? { sha } : {})
+        })
+      });
+      if (!response.ok) throw new Error(await response.text());
+      $("#githubToken").value = "";
+      showToast("Gallery published for all visitors.", "success");
+    } catch {
+      showToast("Publishing failed. Check the token permissions and repository details.", "error");
+    }
   }
   let encoded;
   try {
@@ -485,45 +560,16 @@ async function shareGallery() {
   linkInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function publishGalleryLink({ copy = true } = {}) {
-  if (!state.photos.length) return "";
-  let encoded;
-  try {
-    encoded = encodeGallerySnapshot();
-  } catch {
-    showToast("The gallery could not be published. Try smaller photos.", "error");
-    return "";
-  }
-  if (encoded.length > 7000000) {
-    showToast("The gallery is too large for a share link. Upload fewer photos or smaller images.", "error");
-    return "";
-  }
-  const url = new URL(location.href);
-  url.hash = `sharedGallery=${encoded}`;
-  history.replaceState(null, "", url);
-  $("#sharedGalleryLink").value = url.toString();
-  $("#sharedGalleryLink").classList.add("visible");
-  if (copy && navigator.clipboard) {
-    navigator.clipboard.writeText(url.toString()).catch(() => {});
-  }
-  return url.toString();
-}
-
-async function publishGalleryAfterChange() {
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  const link = publishGalleryLink({ copy: true });
-  if (link) showToast("Gallery published and link copied.", "success");
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   loadPhotos();
   getVisitorId();
   applyTheme(localStorage.getItem(KEYS.theme) || "pink");
   updateAdminUI();
+  loadPublishedGallery();
 
   importSharedGallery();
 
-  $("#shareGalleryButton").addEventListener("click", shareGallery);
+  $("#shareGalleryButton").addEventListener("click", publishGallery);
 
   $("#exploreButton").addEventListener("click", () => {
     $("#memories").classList.remove("hidden-section");
@@ -574,7 +620,6 @@ document.addEventListener("DOMContentLoaded", () => {
       $("#saveUploadsButton").disabled = true;
       $("#photoUpload").value = "";
       renderGallery();
-      publishGalleryAfterChange();
     }
   });
   $("#uploadPreviews").addEventListener("click", event => {
@@ -620,7 +665,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderGallery();
     stopCamera();
     closeModal("cameraModal");
-    publishGalleryAfterChange();
   });
 
   $$(".theme-swatch").forEach(button => button.addEventListener("click", () => {
